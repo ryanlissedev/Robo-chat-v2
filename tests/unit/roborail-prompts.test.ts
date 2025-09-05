@@ -1,8 +1,8 @@
-import { test, expect } from '@playwright/test';
+import { describe, it, expect } from 'vitest';
 import { roboRailSystemPrompt, systemPrompt, artifactsPrompt, fileSearchPrompt } from '@/lib/ai/prompts';
 import type { RequestHints } from '@/lib/ai/prompts';
 
-test.describe('RoboRail System Prompts', () => {
+describe('RoboRail System Prompts', () => {
   const mockRequestHints: RequestHints = {
     latitude: '52.3676',
     longitude: '4.9041',
@@ -10,7 +10,7 @@ test.describe('RoboRail System Prompts', () => {
     country: 'Netherlands',
   };
 
-  test('roboRailSystemPrompt contains all required sections', () => {
+  it('roboRailSystemPrompt contains all required sections', () => {
     expect(roboRailSystemPrompt).toContain('RoboRail Assistant');
     expect(roboRailSystemPrompt).toContain('HGG Profiling Equipment b.v.');
     expect(roboRailSystemPrompt).toContain('## Key Responsibilities');
@@ -27,7 +27,7 @@ test.describe('RoboRail System Prompts', () => {
     expect(roboRailSystemPrompt).toContain('## Notes');
   });
 
-  test('systemPrompt returns correct prompt for gpt-5-mini model', () => {
+  it('systemPrompt returns correct prompt for gpt-5-mini model', () => {
     const result = systemPrompt({
       selectedChatModel: 'gpt-5-mini',
       requestHints: mockRequestHints,
@@ -40,7 +40,7 @@ test.describe('RoboRail System Prompts', () => {
     expect(result).not.toContain(fileSearchPrompt);
   });
 
-  test('systemPrompt returns correct prompt for gpt-5-mini-thinking model', () => {
+  it('systemPrompt returns correct prompt for gpt-5-mini-thinking model', () => {
     const result = systemPrompt({
       selectedChatModel: 'gpt-5-mini-thinking',
       requestHints: mockRequestHints,
@@ -51,7 +51,7 @@ test.describe('RoboRail System Prompts', () => {
     expect(result).not.toContain('RoboRail Assistant');
   });
 
-  test('systemPrompt returns correct prompt for chat-model-reasoning', () => {
+  it('systemPrompt returns correct prompt for chat-model-reasoning', () => {
     const result = systemPrompt({
       selectedChatModel: 'chat-model-reasoning',
       requestHints: mockRequestHints,
@@ -62,7 +62,7 @@ test.describe('RoboRail System Prompts', () => {
     expect(result).not.toContain(artifactsPrompt);
   });
 
-  test('systemPrompt returns correct prompt for other models', () => {
+  it('systemPrompt returns correct prompt for other models', () => {
     const result = systemPrompt({
       selectedChatModel: 'chat-model',
       requestHints: mockRequestHints,
@@ -73,26 +73,26 @@ test.describe('RoboRail System Prompts', () => {
     expect(result).not.toContain('RoboRail Assistant');
   });
 
-  test('RoboRail prompt formatting is correct', () => {
+  it('RoboRail prompt formatting is correct', () => {
     expect(roboRailSystemPrompt).toMatch(/```language-name/);
     expect(roboRailSystemPrompt).toMatch(/code here/);
     expect(roboRailSystemPrompt).toMatch(/```/);
   });
 
-  test('RoboRail prompt safety emphasis', () => {
+  it('RoboRail prompt safety emphasis', () => {
     expect(roboRailSystemPrompt.toLowerCase()).toContain('safety');
     expect(roboRailSystemPrompt.toLowerCase()).toContain('hazard');
     expect(roboRailSystemPrompt).toContain('user safety');
     expect(roboRailSystemPrompt).toContain('proper machine operation');
   });
 
-  test('RoboRail prompt conciseness requirements', () => {
+  it('RoboRail prompt conciseness requirements', () => {
     expect(roboRailSystemPrompt).toContain('concise');
     expect(roboRailSystemPrompt).toContain('brief');
     expect(roboRailSystemPrompt).toContain('brevity');
   });
 
-  test('RoboRail prompt support escalation', () => {
+  it('RoboRail prompt support escalation', () => {
     expect(roboRailSystemPrompt).toContain('HGG customer support');
     expect(roboRailSystemPrompt).toContain('contact information');
     expect(roboRailSystemPrompt).toContain('issues beyond your scope');

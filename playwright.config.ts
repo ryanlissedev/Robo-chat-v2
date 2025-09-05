@@ -49,7 +49,7 @@ export default defineConfig({
     timeout: 240 * 1000,
   },
 
-  /* Configure projects */
+  /* Configure projects - e2e and routes only */
   projects: [
     {
       name: 'e2e',
@@ -61,20 +61,6 @@ export default defineConfig({
     {
       name: 'routes',
       testMatch: /routes\/.*.test.ts/,
-      use: {
-        ...devices['Desktop Chrome'],
-      },
-    },
-    {
-      name: 'unit',
-      testMatch: /unit\/.*.test.ts/,
-      use: {
-        ...devices['Desktop Chrome'],
-      },
-    },
-    {
-      name: 'roborail',
-      testMatch: /roborail.test.ts/,
       use: {
         ...devices['Desktop Chrome'],
       },
