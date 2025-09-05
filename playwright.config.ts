@@ -6,6 +6,12 @@ import { defineConfig, devices } from '@playwright/test';
  */
 import { config } from 'dotenv';
 
+// Load test environment variables for Playwright tests
+config({
+  path: '.env.test',
+});
+
+// Also load .env.local for any additional local overrides
 config({
   path: '.env.local',
 });
@@ -99,9 +105,22 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'pnpm dev',
+    command: 'NODE_ENV=test pnpm dev',
     url: `${baseURL}/ping`,
     timeout: 120 * 1000,
     reuseExistingServer: !process.env.CI,
+    env: {
+      ...process.env,
+      // Ensure test environment variables are available to the dev server
+      NODE_ENV: 'test',
+      AUTH_SECRET: process.env.AUTH_SECRET || 'test-secret-key-for-playwright-tests-12345678901234567890',
+      POSTGRES_URL: process.env.POSTGRES_URL || 'postgresql://test:test@localhost:5432/test',
+      AUTH_GOOGLE_ID: process.env.AUTH_GOOGLE_ID || 'test-google-id',
+      AUTH_GOOGLE_SECRET: process.env.AUTH_GOOGLE_SECRET || 'test-google-secret',
+      XAIA_API_KEY: process.env.XAIA_API_KEY || 'test-xaia-key',
+      // Add API keys for tests
+      OPENAI_API_KEY: process.env.OPENAI_API_KEY || 'test-openai-key',
+      XAI_API_KEY: process.env.XAI_API_KEY || 'test-xai-key',
+    },
   },
 });

@@ -51,7 +51,7 @@ export const fileSearch = tool({
         };
       }
       
-      const searchResults = await fileSearchTool.execute({ query });
+      const searchResults = await fileSearchTool.execute({ query }, { toolCallId: 'file-search-' + Date.now(), messages: [] });
 
       // Format results for inline citations
       const formattedResults: FileSearchResult[] = (searchResults as any)?.results?.map((result: any) => ({
@@ -85,19 +85,46 @@ export const performFileSearch = async (
   query: string,
   maxResults = 5
 ): Promise<FileSearchResult[]> => {
-  if (!fileSearch.execute) {
-    console.error('fileSearch.execute is not defined');
-    return [];
-  }
-  
   try {
-    const result = await fileSearch.execute({ query, maxResults });
-    if (result && typeof result === 'object' && 'error' in result) {
-      console.error('File search error:', (result as any).error);
+    const vectorStoreId = process.env.OPENAI_VECTORSTORE_ID || 'vs_6849955367a88191bf89d7660230325f';
+    const apiKey = process.env.OPENAI_API_KEY;
+    
+    // Check if API key is available
+    if (!apiKey) {
+      console.warn('OPENAI_API_KEY not configured - file search disabled');
       return [];
     }
-    return (result as any)?.result || [];
-  } catch (error) {
+    
+    // Configure the file search tool
+    const fileSearchTool = openai.tools.fileSearch({
+      vectorStoreIds: [vectorStoreId],
+      maxNumResults: maxResults,
+      ranking: { ranker: 'auto' },
+    });
+
+    // Execute the search
+    if (!fileSearchTool.execute) {
+      console.error('fileSearchTool.execute is not available');
+      return [];
+    }
+    
+    const searchResults = await fileSearchTool.execute({ query }, { toolCallId: 'file-search-' + Date.now(), messages: [] });
+
+    // Format results for inline citations
+    const formattedResults: FileSearchResult[] = (searchResults as any)?.results?.map((result: any) => ({
+      content: result.content || '',
+      metadata: result.metadata || {},
+      score: result.score,
+      source: {
+        title: result.title || result.fileName || 'Document',
+        url: result.url || result.fileId,
+        description: result.description || result.snippet,
+        quote: result.quote || result.content?.slice(0, 200),
+      },
+    })) || [];
+
+    return formattedResults;
+  } catch (error: any) {
     console.error('File search error:', error);
     return [];
   }
