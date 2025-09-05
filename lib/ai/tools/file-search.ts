@@ -1,4 +1,4 @@
-import { type CoreToolResult, tool } from 'ai';
+import { tool } from 'ai';
 import { z } from 'zod';
 import { openai } from '@ai-sdk/openai';
 
@@ -16,11 +16,11 @@ export interface FileSearchResult {
 
 export const fileSearch = tool({
   description: 'Search through the vectorstore for relevant information',
-  parameters: z.object({
+  inputSchema: z.object({
     query: z.string().describe('The search query to find relevant information'),
     maxResults: z.number().optional().default(5).describe('Maximum number of results to return'),
   }),
-  execute: async ({ query, maxResults }): Promise<CoreToolResult<FileSearchResult[]>> => {
+  execute: async ({ query, maxResults = 5 }) => {
     try {
       const vectorStoreId = process.env.OPENAI_VECTORSTORE_ID || 'vs_6849955367a88191bf89d7660230325f';
       const apiKey = process.env.OPENAI_API_KEY;
@@ -43,12 +43,18 @@ export const fileSearch = tool({
       });
 
       // Execute the search
-      const searchResults = await fileSearchTool.execute({
-        args: { query },
-      });
+      if (!fileSearchTool.execute) {
+        return {
+          success: false,
+          result: [],
+          error: 'fileSearchTool.execute is not available',
+        };
+      }
+      
+      const searchResults = await fileSearchTool.execute({ query });
 
       // Format results for inline citations
-      const formattedResults: FileSearchResult[] = searchResults.results?.map((result: any) => ({
+      const formattedResults: FileSearchResult[] = (searchResults as any)?.results?.map((result: any) => ({
         content: result.content || '',
         metadata: result.metadata || {},
         score: result.score,
@@ -79,10 +85,20 @@ export const performFileSearch = async (
   query: string,
   maxResults = 5
 ): Promise<FileSearchResult[]> => {
-  const result = await fileSearch.execute({ query, maxResults });
-  if ('error' in result) {
-    console.error('File search error:', result.error);
+  if (!fileSearch.execute) {
+    console.error('fileSearch.execute is not defined');
     return [];
   }
-  return result.result as FileSearchResult[];
+  
+  try {
+    const result = await fileSearch.execute({ query, maxResults });
+    if (result && typeof result === 'object' && 'error' in result) {
+      console.error('File search error:', (result as any).error);
+      return [];
+    }
+    return (result as any)?.result || [];
+  } catch (error) {
+    console.error('File search error:', error);
+    return [];
+  }
 };
