@@ -23,6 +23,7 @@ import { createDocument } from '@/lib/ai/tools/create-document';
 import { updateDocument } from '@/lib/ai/tools/update-document';
 import { requestSuggestions } from '@/lib/ai/tools/request-suggestions';
 import { getWeather } from '@/lib/ai/tools/get-weather';
+import { fileSearch, performFileSearch, type FileSearchResult } from '@/lib/ai/tools/file-search';
 import { isProductionEnvironment } from '@/lib/constants';
 import { myProvider } from '@/lib/ai/providers';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
@@ -85,6 +86,12 @@ export async function POST(request: Request) {
       selectedVisibilityType: VisibilityType;
     } = requestBody;
 
+    // Extract text content from message for file search
+    const messageText = message.parts
+      .filter(part => part.type === 'text')
+      .map(part => part.text)
+      .join(' ');
+
     const session = await auth();
 
     if (!session?.user) {
@@ -146,19 +153,61 @@ export async function POST(request: Request) {
       ],
     });
 
+    // Perform file search first if using GPT-5 model and API key is available
+    let fileSearchResults: FileSearchResult[] = [];
+    let searchContext = '';
+    
+    if (selectedChatModel === 'gpt-5-mini-thinking' && messageText && process.env.OPENAI_API_KEY) {
+      try {
+        fileSearchResults = await performFileSearch(messageText, 5);
+        
+        if (fileSearchResults.length > 0) {
+          searchContext = `\n\nRelevant information from vectorstore:\n${fileSearchResults
+            .map((result, index) => 
+              `[${index + 1}] ${result.source?.title || 'Document'}:\n${result.content}\n`
+            ).join('\n')}`;
+        }
+      } catch (error) {
+        console.error('File search failed:', error);
+      }
+    } else if (selectedChatModel === 'gpt-5-mini-thinking' && !process.env.OPENAI_API_KEY) {
+      console.warn('GPT-5 model selected but OPENAI_API_KEY not configured - using fallback model');
+    }
+
     const streamId = generateUUID();
     await createStreamId({ streamId, chatId: id });
 
     const stream = createUIMessageStream({
       execute: ({ writer: dataStream }) => {
+        // Include search results in the system prompt if available
+        const enhancedSystemPrompt = searchContext 
+          ? `${systemPrompt({ selectedChatModel, requestHints })}${searchContext}\n\nIMPORTANT: Use inline citations when referencing the information from the vectorstore. Show your reasoning process when using GPT-5 model.`
+          : systemPrompt({ selectedChatModel, requestHints });
+
+        // If we have search results, send them to the client for citations
+        if (fileSearchResults.length > 0) {
+          dataStream.writeData({
+            type: 'citations',
+            sources: fileSearchResults.map(r => r.source).filter(Boolean),
+          });
+        }
+
         const result = streamText({
           model: myProvider.languageModel(selectedChatModel),
-          system: systemPrompt({ selectedChatModel, requestHints }),
+          system: enhancedSystemPrompt,
           messages: convertToModelMessages(uiMessages),
           stopWhen: stepCountIs(5),
           experimental_activeTools:
             selectedChatModel === 'chat-model-reasoning'
               ? []
+              : selectedChatModel === 'gpt-5-mini-thinking'
+              ? [
+                  'fileSearch',
+                  'getWeather',
+                  'createDocument',
+                  'updateDocument',
+                  'requestSuggestions',
+                ]
               : [
                   'getWeather',
                   'createDocument',
@@ -167,6 +216,7 @@ export async function POST(request: Request) {
                 ],
           experimental_transform: smoothStream({ chunking: 'word' }),
           tools: {
+            fileSearch,
             getWeather,
             createDocument: createDocument({ session, dataStream }),
             updateDocument: updateDocument({ session, dataStream }),
@@ -185,7 +235,7 @@ export async function POST(request: Request) {
 
         dataStream.merge(
           result.toUIMessageStream({
-            sendReasoning: true,
+            sendReasoning: selectedChatModel === 'gpt-5-mini-thinking' || selectedChatModel === 'chat-model-reasoning',
           }),
         );
       },

@@ -2,6 +2,7 @@ import { Toaster } from 'sonner';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
+import BrowserEchoScript from '@browser-echo/next/BrowserEchoScript';
 
 import './globals.css';
 import { SessionProvider } from 'next-auth/react';
@@ -69,6 +70,9 @@ export default async function RootLayout({
             __html: THEME_COLOR_SCRIPT,
           }}
         />
+        {process.env.NODE_ENV === 'development' && (
+          <BrowserEchoScript route="/api/client-logs" />
+        )}
       </head>
       <body className="antialiased">
         <ThemeProvider
