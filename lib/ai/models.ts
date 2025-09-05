@@ -1,4 +1,4 @@
-export const DEFAULT_CHAT_MODEL: string = 'gpt-5-mini-thinking';
+export const DEFAULT_CHAT_MODEL: string = 'gpt-5-mini';
 
 export interface ChatModel {
   id: string;
@@ -8,6 +8,12 @@ export interface ChatModel {
 }
 
 export const chatModels: Array<ChatModel> = [
+  {
+    id: 'gpt-5-mini',
+    name: 'GPT-5 Mini',
+    description: 'Default model with RoboRail expertise',
+    provider: 'openai',
+  },
   {
     id: 'gpt-5-mini-thinking',
     name: 'GPT-5 Mini (September 2025)',

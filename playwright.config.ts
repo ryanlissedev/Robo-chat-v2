@@ -49,7 +49,7 @@ export default defineConfig({
     timeout: 240 * 1000,
   },
 
-  /* Configure projects */
+  /* Configure projects - e2e and routes only */
   projects: [
     {
       name: 'e2e',
