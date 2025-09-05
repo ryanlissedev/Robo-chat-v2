@@ -35,6 +35,19 @@ Do not update document right after creating it. Wait for user feedback or reques
 export const regularPrompt =
   'You are a friendly assistant! Keep your responses concise and helpful.';
 
+export const fileSearchPrompt = `
+You are an intelligent assistant with access to a vectorstore containing relevant information.
+
+When answering questions:
+1. First check if information is available in the vectorstore
+2. Use file search to find relevant documents
+3. Cite sources when using information from the vectorstore
+4. Show reasoning when applicable
+5. Keep responses concise with low verbosity
+6. If no relevant information is found, respond based on general knowledge
+
+Important: Always attempt to search the vectorstore first before providing an answer.`;
+
 export interface RequestHints {
   latitude: Geo['latitude'];
   longitude: Geo['longitude'];
@@ -59,7 +72,9 @@ export const systemPrompt = ({
 }) => {
   const requestPrompt = getRequestPromptFromHints(requestHints);
 
-  if (selectedChatModel === 'chat-model-reasoning') {
+  if (selectedChatModel === 'gpt-5-mini-thinking') {
+    return `${fileSearchPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}`;
+  } else if (selectedChatModel === 'chat-model-reasoning') {
     return `${regularPrompt}\n\n${requestPrompt}`;
   } else {
     return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}`;

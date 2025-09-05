@@ -1,10 +1,9 @@
 'use client';
-import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 import { memo, useState } from 'react';
 import type { Vote } from '@/lib/db/schema';
 import { DocumentToolResult } from './document';
-import { PencilEditIcon, SparklesIcon, LoaderIcon } from './icons';
+import { PencilEditIcon, SparklesIcon, } from './icons';
 import { Response } from './elements/response';
 import { MessageContent } from './elements/message';
 import {
@@ -27,6 +26,7 @@ import { MessageReasoning } from './message-reasoning';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import type { ChatMessage } from '@/lib/types';
 import { useDataStream } from './data-stream-provider';
+import { MessageCitations, type CitationSource } from './inline-citation';
 
 // Type narrowing is handled by TypeScript's control flow analysis
 // The AI SDK provides proper discriminated unions for tool calls
@@ -58,7 +58,8 @@ const PurePreviewMessage = ({
     (part) => part.type === 'file',
   );
 
-  useDataStream();
+  const { data } = useDataStream();
+  const citations = data?.find((d: any) => d.type === 'citations')?.sources as CitationSource[] | undefined;
 
   return (
     <AnimatePresence>
@@ -152,7 +153,14 @@ const PurePreviewMessage = ({
                           'bg-transparent -ml-4': message.role === 'assistant',
                         })}
                       >
-                        <Response>{sanitizeText(part.text)}</Response>
+                        {message.role === 'assistant' && citations && citations.length > 0 ? (
+                          <MessageCitations
+                            sources={citations}
+                            text={sanitizeText(part.text)}
+                          />
+                        ) : (
+                          <Response>{sanitizeText(part.text)}</Response>
+                        )}
                       </MessageContent>
                     </div>
                   );
@@ -245,6 +253,46 @@ const PurePreviewMessage = ({
                       args={{ ...part.output, isUpdate: true }}
                     />
                   </div>
+                );
+              }
+
+              if (type === 'tool-fileSearch') {
+                const { toolCallId, state } = part;
+
+                return (
+                  <Tool key={toolCallId} defaultOpen={false}>
+                    <ToolHeader type="tool-fileSearch" state={state} />
+                    <ToolContent>
+                      {state === 'input-available' && (
+                        <ToolInput input={part.input} />
+                      )}
+                      {state === 'output-available' && (
+                        <ToolOutput
+                          output={
+                            'error' in part.output ? (
+                              <div className="p-2 text-red-500 rounded border">
+                                Error: {String(part.output.error)}
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                {part.output?.result?.map((result: any, idx: number) => (
+                                  <div key={idx} className="p-2 border rounded">
+                                    <div className="font-medium text-sm">
+                                      {result.source?.title || 'Document'}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                      {result.content?.slice(0, 200)}...
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )
+                          }
+                          errorText={undefined}
+                        />
+                      )}
+                    </ToolContent>
+                  </Tool>
                 );
               }
 
