@@ -153,11 +153,11 @@ export async function POST(request: Request) {
       ],
     });
 
-    // Perform file search first if using GPT-5 model and API key is available
+    // Perform file search first if using GPT-5 models and API key is available
     let fileSearchResults: FileSearchResult[] = [];
     let searchContext = '';
     
-    if (selectedChatModel === 'gpt-5-mini-thinking' && messageText && process.env.OPENAI_API_KEY) {
+    if ((selectedChatModel === 'gpt-5-mini-thinking' || selectedChatModel === 'gpt-5-mini') && messageText && process.env.OPENAI_API_KEY) {
       try {
         fileSearchResults = await performFileSearch(messageText, 5);
         
@@ -170,7 +170,7 @@ export async function POST(request: Request) {
       } catch (error) {
         console.error('File search failed:', error);
       }
-    } else if (selectedChatModel === 'gpt-5-mini-thinking' && !process.env.OPENAI_API_KEY) {
+    } else if ((selectedChatModel === 'gpt-5-mini-thinking' || selectedChatModel === 'gpt-5-mini') && !process.env.OPENAI_API_KEY) {
       console.warn('GPT-5 model selected but OPENAI_API_KEY not configured - using fallback model');
     }
 
@@ -200,7 +200,7 @@ export async function POST(request: Request) {
           experimental_activeTools:
             selectedChatModel === 'chat-model-reasoning'
               ? []
-              : selectedChatModel === 'gpt-5-mini-thinking'
+              : selectedChatModel === 'gpt-5-mini-thinking' || selectedChatModel === 'gpt-5-mini'
               ? [
                   'fileSearch',
                   'getWeather',
@@ -235,7 +235,7 @@ export async function POST(request: Request) {
 
         dataStream.merge(
           result.toUIMessageStream({
-            sendReasoning: selectedChatModel === 'gpt-5-mini-thinking' || selectedChatModel === 'chat-model-reasoning',
+            sendReasoning: selectedChatModel === 'gpt-5-mini-thinking' || selectedChatModel === 'gpt-5-mini' || selectedChatModel === 'chat-model-reasoning',
           }),
         );
       },
