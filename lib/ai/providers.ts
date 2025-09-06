@@ -35,10 +35,7 @@ export const myProvider = isTestEnvironment
         'artifact-model': gateway.languageModel('xai/grok-2-1212'),
         'gpt-5-mini-thinking': process.env.OPENAI_API_KEY 
           ? wrapLanguageModel({
-              model: openai('gpt-5-mini-2025-09-01', {
-                reasoningEffort: 'medium',
-                structuredOutputs: true,
-              }),
+              model: openai('gpt-5-mini-2025-09-01'),
               middleware: extractReasoningMiddleware({ tagName: 'thinking' }),
             })
           : wrapLanguageModel({
@@ -46,9 +43,7 @@ export const myProvider = isTestEnvironment
               middleware: extractReasoningMiddleware({ tagName: 'thinking' }),
             }),
         'file-search-model': process.env.OPENAI_API_KEY
-          ? openai('gpt-5-mini-2025-09-01', {
-              reasoningEffort: 'low',
-            })
+          ? openai('gpt-5-mini-2025-09-01')
           : gateway.languageModel('xai/grok-2-1212'),
       },
     });

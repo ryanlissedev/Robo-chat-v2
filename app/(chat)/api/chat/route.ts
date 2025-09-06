@@ -186,9 +186,11 @@ export async function POST(request: Request) {
 
         // If we have search results, send them to the client for citations
         if (fileSearchResults.length > 0) {
-          dataStream.writeData({
-            type: 'citations',
-            sources: fileSearchResults.map(r => r.source).filter(Boolean),
+          dataStream.write({
+            type: 'data-citations',
+            data: JSON.stringify({
+              sources: fileSearchResults.map(r => r.source).filter(Boolean),
+            }),
           });
         }
 

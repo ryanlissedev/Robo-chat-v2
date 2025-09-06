@@ -58,8 +58,10 @@ const PurePreviewMessage = ({
     (part) => part.type === 'file',
   );
 
-  const { data } = useDataStream();
-  const citations = data?.find((d: any) => d.type === 'citations')?.sources as CitationSource[] | undefined;
+  const { dataStream } = useDataStream();
+  const citations = dataStream?.find((d: any) => d.type === 'data-citations')?.data ? 
+    JSON.parse(dataStream.find((d: any) => d.type === 'data-citations')?.data as string).sources as CitationSource[] : 
+    undefined;
 
   return (
     <AnimatePresence>
