@@ -17,27 +17,52 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = await getToken({
-    req: request,
-    secret: getAuthSecret(),
-    secureCookie: !isDevelopmentEnvironment,
-  });
+  try {
+    const token = await getToken({
+      req: request,
+      secret: getAuthSecret(),
+      secureCookie: !isDevelopmentEnvironment,
+    });
 
-  if (!token) {
-    const redirectUrl = encodeURIComponent(request.url);
+    if (!token) {
+      const redirectUrl = encodeURIComponent(request.url);
 
-    return NextResponse.redirect(
-      new URL(`/api/auth/guest?redirectUrl=${redirectUrl}`, request.url),
+      return NextResponse.redirect(
+        new URL(`/api/auth/guest?redirectUrl=${redirectUrl}`, request.url),
+      );
+    }
+
+    const isGuest = guestRegex.test(token?.email ?? '');
+
+    if (token && !isGuest && ['/login', '/register'].includes(pathname)) {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+
+    return NextResponse.next();
+  } catch (error) {
+    console.error('Middleware error:', error);
+    
+    // If AUTH_SECRET is missing, redirect to a setup/error page
+    if (error instanceof Error && error.message.includes('AUTH_SECRET')) {
+      // Allow access to static files and auth endpoints
+      if (pathname.startsWith('/_next/') || 
+          pathname.startsWith('/api/auth') || 
+          pathname === '/favicon.ico') {
+        return NextResponse.next();
+      }
+      
+      // For other routes, redirect to login with error message
+      return NextResponse.redirect(
+        new URL('/api/auth/error?error=Configuration', request.url),
+      );
+    }
+    
+    // For other errors, return 500
+    return new NextResponse(
+      JSON.stringify({ error: 'Internal Server Error' }),
+      { status: 500, headers: { 'content-type': 'application/json' } }
     );
   }
-
-  const isGuest = guestRegex.test(token?.email ?? '');
-
-  if (token && !isGuest && ['/login', '/register'].includes(pathname)) {
-    return NextResponse.redirect(new URL('/', request.url));
-  }
-
-  return NextResponse.next();
 }
 
 export const config = {
