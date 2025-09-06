@@ -18,8 +18,19 @@ vi.mock('next/navigation', () => ({
 }));
 
 // Mock environment variables for tests
-process.env.OPENAI_API_KEY = 'test-api-key';
-process.env.XAI_API_KEY = 'test-xai-key';
+if (!process.env.NODE_ENV) {
+  Object.defineProperty(process.env, 'NODE_ENV', { value: 'test', writable: true });
+}
+process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || 'test-api-key';
+process.env.XAI_API_KEY = process.env.XAI_API_KEY || 'test-xai-key';
+
+// Set AUTH_SECRET fallback for tests
+if (!process.env.AUTH_SECRET) {
+  process.env.AUTH_SECRET = 'test-secret-key-for-tests-12345678901234567890';
+}
+
+// Mark as test environment
+process.env.PLAYWRIGHT = 'True';
 
 // Mock database for unit/integration tests
 vi.mock('@/lib/db/queries', () => ({

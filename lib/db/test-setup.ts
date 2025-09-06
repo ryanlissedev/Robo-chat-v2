@@ -5,9 +5,14 @@ config({
   path: '.env.test',
 });
 
-// Fallback test database URL if not set
-if (!process.env.POSTGRES_URL) {
+// Fallback test database URL if not set - only set if we're in a real test environment with database
+if (!process.env.POSTGRES_URL && !process.env.CI && !process.env.PLAYWRIGHT) {
   process.env.POSTGRES_URL = 'postgresql://test:test@localhost:5432/test';
+}
+
+// In CI/CD environments, we prefer not to set a fallback URL to force mock usage
+if (process.env.CI && !process.env.POSTGRES_URL) {
+  console.log('CI environment detected without POSTGRES_URL - tests will use mock database');
 }
 
 // Export test configuration
@@ -17,12 +22,30 @@ export const IS_TEST_ENV = process.env.NODE_ENV === 'test' || process.env.PLAYWR
 // Mock database functions for tests that don't need real DB
 export const createMockDatabase = () => {
   const mockQueries = {
-    getUser: async () => [],
-    createGuestUser: async () => [{ id: 'test-user-id', email: 'test@example.com' }],
+    getUser: async (email: string) => {
+      // Return guest users for guest emails, empty array for others
+      if (email.startsWith('guest-')) {
+        return [{ id: 'test-guest-id', email, password: null }];
+      }
+      return [];
+    },
+    createUser: async (email: string, password: string) => {
+      return [{ id: 'test-user-id', email, password }];
+    },
+    createGuestUser: async () => {
+      const email = `guest-${Date.now()}`;
+      return [{ id: 'test-guest-user-id', email }];
+    },
     saveChat: async () => undefined,
     deleteChatById: async () => ({ id: 'test-chat-id' }),
     getChatsByUserId: async () => ({ chats: [], hasMore: false }),
-    getChatById: async () => ({ id: 'test-chat-id', title: 'Test Chat', userId: 'test-user-id' }),
+    getChatById: async ({ id }: { id: string }) => ({ 
+      id, 
+      title: 'Test Chat', 
+      userId: 'test-user-id',
+      visibility: 'private' as const,
+      createdAt: new Date()
+    }),
     saveMessages: async () => undefined,
     getMessagesByChatId: async () => [],
     voteMessage: async () => undefined,

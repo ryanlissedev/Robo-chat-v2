@@ -51,7 +51,7 @@ export const fileSearch = tool({
         };
       }
       
-      const searchResults = await fileSearchTool.execute({ query }, { toolCallId: 'file-search-' + Date.now(), messages: [] });
+      const searchResults = await fileSearchTool.execute({ query }, { toolCallId: `file-search-${Date.now()}`, messages: [] });
 
       // Format results for inline citations
       const formattedResults: FileSearchResult[] = (searchResults as any)?.results?.map((result: any) => ({
@@ -108,7 +108,7 @@ export const performFileSearch = async (
       return [];
     }
     
-    const searchResults = await fileSearchTool.execute({ query }, { toolCallId: 'file-search-' + Date.now(), messages: [] });
+    const searchResults = await fileSearchTool.execute({ query }, { toolCallId: `file-search-${Date.now()}`, messages: [] });
 
     // Format results for inline citations
     const formattedResults: FileSearchResult[] = (searchResults as any)?.results?.map((result: any) => ({
